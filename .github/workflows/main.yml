@@ -20,18 +20,22 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-          packages: |
-            platform-tools
-            platforms;android-36
-            platforms;android-37
-            build-tools;36.0.0
-            build-tools;35.0.0
+        uses: android-actions/setup-android@v4
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Install SDK Packages & Accept Licenses
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" || true
+          sdkmanager --channel=3 "platforms;android-37.0" || true
+          yes | sdkmanager --channel=3 --licenses > /dev/null || true
+
+      - name: Prepare Gradle Wrapper
+        run: |
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            gradle wrapper
+          fi
+          sed -i 's/\r$//' ./gradlew
+          chmod +x ./gradlew
 
       - name: Build Kiosk APK
         run: ./gradlew :app:assembleKiosk --stacktrace --no-daemon
@@ -43,12 +47,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SecureBrowse-Kiosk-APK
-          path: app/build/outputs/apk/kiosk/*.apk
+          path: |
+            app/build/outputs/apk/kiosk/**/*.apk
+            app/build/outputs/apk/**/kiosk/*.apk
           if-no-files-found: warn
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: SecureBrowse-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/**/*.apk
+            app/build/outputs/apk/**/debug/*.apk
           if-no-files-found: warn

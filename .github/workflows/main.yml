@@ -1,7 +1,7 @@
 name: Build APK
 
 on:
-  workflow_dispatch:   # You can run it manually
+  workflow_dispatch:
   push:
     branches: [ main, master ]
 
@@ -21,24 +21,28 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 platforms;android-37 build-tools;36.0.0'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Kiosk APK (recommended)
-        run: ./gradlew :app:assembleKiosk --stacktrace
+      - name: Build Kiosk APK
+        run: ./gradlew :app:assembleKiosk --stacktrace --no-daemon
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Upload Kiosk APK
         uses: actions/upload-artifact@v4
         with:
           name: SecureBrowse-Kiosk-APK
           path: app/build/outputs/apk/kiosk/*.apk
+          if-no-files-found: warn
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: SecureBrowse-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
